@@ -37,7 +37,11 @@ h1{font-size:clamp(38px,6vw,76px);line-height:.94;letter-spacing:-.065em;margin:
 h2{font-size:32px;letter-spacing:-.04em;margin:7px 0}.step-desc{color:var(--muted);line-height:1.55;margin:0;max-width:720px}
 .card{border-top:1px solid var(--line);padding:26px 0}
 .q{margin-bottom:26px}.q:last-child{margin-bottom:0}
-label.title{display:block;font-size:14px;font-weight:650;margin-bottom:10px}.hint{font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.45}
+label.title{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:650;margin-bottom:10px}.hint{font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.45}
+.q-help{flex:0 0 auto;width:19px;height:19px;border:1px solid #3a3a40;border-radius:50%;background:#151518;color:#b9b9c0;font-size:11px;font-weight:800;line-height:17px;padding:0;text-align:center}
+.q-help:hover,.q-help:focus-visible,.q-help[aria-expanded="true"]{border-color:var(--accent);color:#fff;background:#2a1a0d;outline:none}
+.help-pop{display:none;max-width:620px;margin:-3px 0 11px;padding:10px 12px;border:1px solid #313138;border-radius:10px;background:#141417;color:#aaaab2;font-size:12px;font-weight:400;line-height:1.5}
+.help-pop.show{display:block}
 input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],textarea,select{
  width:100%;border:1px solid #29292e;background:#101012;color:#fff;border-radius:12px;padding:13px 14px;outline:none;transition:.18s
 }
@@ -206,6 +210,17 @@ const form=document.getElementById("form"), nav=document.getElementById("nav");
 let current=+(localStorage.getItem("fluxo_crm_step")||0);
 const saved=JSON.parse(localStorage.getItem("fluxo_crm_data")||"{}");
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function helpText(type,title){
+ if(type==="checks")return "Marque todas as opções que se aplicam à realidade da empresa. Você pode selecionar mais de uma.";
+ if(type==="radio")return "Escolha a alternativa que melhor representa o cenário atual. Se houver dúvida, selecione a opção mais próxima.";
+ if(type==="number")return "Informe uma quantidade aproximada. Uma estimativa já é suficiente para o planejamento.";
+ if(type==="date")return "Informe a data desejada, mesmo que ainda seja uma previsão.";
+ if(type==="email")return "Informe o e-mail da pessoa que será o contato principal deste projeto.";
+ if(type==="text")return "Informe uma resposta curta e objetiva para identificar este ponto do projeto.";
+ return title.toLowerCase().startsWith("se sim")
+   ? "Responda somente se a pergunta anterior se aplicar. Explique brevemente como isso deve funcionar."
+   : "Descreva este ponto com suas próprias palavras. Se possível, inclua um exemplo da rotina atual ou desejada.";
+}
 function qHtml(q){
  const [type,name,title,extra,hint]=q, req=extra===1;
  let body="";
@@ -215,7 +230,8 @@ function qHtml(q){
    const opts=Array.isArray(extra)?extra:[];
    body=`<div class="choices">${opts.map(o=>{const vals=Array.isArray(saved[name])?saved[name]:[saved[name]];return `<div class="choice"><input id="${name}_${esc(o)}" type="${type==="radio"?"radio":"checkbox"}" name="${name}" value="${esc(o)}" ${vals.includes(o)?"checked":""}><label for="${name}_${esc(o)}">${esc(o)}</label></div>`}).join("")}</div>`;
  }
- return `<div class="q"><label class="title">${esc(title)} ${req?'<span class="req">*</span>':""}</label>${hint?`<div class="hint">${esc(hint)}</div>`:""}${body}</div>`;
+ const helpId=`help_${name}`;
+ return `<div class="q"><label class="title"><span>${esc(title)} ${req?'<span class="req">*</span>':""}</span><button class="q-help" type="button" aria-label="Explicação: ${esc(title)}" aria-expanded="false" aria-controls="${helpId}">i</button></label><div class="help-pop" id="${helpId}">${esc(helpText(type,title))}</div>${hint?`<div class="hint">${esc(hint)}</div>`:""}${body}</div>`;
 }
 sections.forEach((s,i)=>{
  nav.insertAdjacentHTML("beforeend",`<button type="button" data-i="${i}">${String(i+1).padStart(2,"0")} &nbsp; ${s.t}</button>`);
@@ -305,6 +321,15 @@ async function sendDiagnosis(){
 form.addEventListener("input",collect); form.addEventListener("change",collect);
 
 form.addEventListener("click",e=>{
+ const help=e.target.closest(".q-help");
+ if(help){
+   const pop=document.getElementById(help.getAttribute("aria-controls"));
+   const open=help.getAttribute("aria-expanded")==="true";
+   form.querySelectorAll(".q-help[aria-expanded='true']").forEach(button=>button.setAttribute("aria-expanded","false"));
+   form.querySelectorAll(".help-pop.show").forEach(item=>item.classList.remove("show"));
+   if(!open){help.setAttribute("aria-expanded","true");pop.classList.add("show")}
+   return;
+ }
  if(e.target.classList.contains("next")){
    const step=document.querySelector(`.step[data-step="${current}"]`);
    const required=[...step.querySelectorAll("[required]")];
