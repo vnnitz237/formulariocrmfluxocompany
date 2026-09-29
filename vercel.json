@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/formulario-joao",
+      "destination": "/index.html"
+    }
+  ]
+}
