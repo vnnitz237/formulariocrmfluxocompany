@@ -265,6 +265,9 @@ async function sendDiagnosis(){
   const btn=document.getElementById("sendDiagnosis");
   const status=document.getElementById("sendStatus");
   const data=collect();
+  const payload=Object.fromEntries(
+    sections.flatMap(section=>section.qs.map(question=>[question[2],data[question[1]]]))
+  );
 
   if(!data.empresa || !data.responsavel || !data.email){
     status.className="status show err";
@@ -283,7 +286,7 @@ async function sendDiagnosis(){
       method:"POST",
       mode:"no-cors",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify(data)
+      body:JSON.stringify(payload)
     });
 
     status.className="status show ok";
