@@ -210,16 +210,94 @@ const form=document.getElementById("form"), nav=document.getElementById("nav");
 let current=+(localStorage.getItem("fluxo_crm_step")||0);
 const saved=JSON.parse(localStorage.getItem("fluxo_crm_data")||"{}");
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function helpText(type,title){
- if(type==="checks")return "Marque todas as opções que se aplicam à realidade da empresa. Você pode selecionar mais de uma.";
- if(type==="radio")return "Escolha a alternativa que melhor representa o cenário atual. Se houver dúvida, selecione a opção mais próxima.";
- if(type==="number")return "Informe uma quantidade aproximada. Uma estimativa já é suficiente para o planejamento.";
- if(type==="date")return "Informe a data desejada, mesmo que ainda seja uma previsão.";
- if(type==="email")return "Informe o e-mail da pessoa que será o contato principal deste projeto.";
- if(type==="text")return "Informe uma resposta curta e objetiva para identificar este ponto do projeto.";
- return title.toLowerCase().startsWith("se sim")
-   ? "Responda somente se a pergunta anterior se aplicar. Explique brevemente como isso deve funcionar."
-   : "Descreva este ponto com suas próprias palavras. Se possível, inclua um exemplo da rotina atual ou desejada.";
+const QUESTION_HELP={
+ empresa:"Informe o nome comercial ou a razão social usada para identificar a empresa.",
+ segmento:"Descreva a principal atividade da empresa, como imobiliária, clínica, varejo, indústria ou serviços.",
+ responsavel:"Informe quem acompanhará as decisões, dúvidas e validações durante a implantação do CRM.",
+ email:"Use o e-mail profissional do responsável que receberá os contatos sobre este projeto.",
+ equipe:"Conte todas as pessoas que trabalham na empresa, mesmo as que não utilizarão o CRM.",
+ usuarios:"Informe quantas pessoas precisarão acessar o CRM para consultar ou registrar informações.",
+ setores:"Selecione todas as áreas que consultarão, registrarão ou acompanharão informações no CRM.",
+ objetivo:"Explique o principal resultado que a empresa espera alcançar com o novo CRM.",
+ problemas:"Liste as dificuldades atuais, como perda de contatos, demora no atendimento ou falta de acompanhamento.",
+ controle_atual:"Indique onde a equipe registra e acompanha hoje clientes, tarefas, vendas e atendimentos.",
+ sistema_atual:"Informe o sistema usado hoje e explique o que deve ser mantido ou melhorado.",
+ top3:"Liste, em ordem de importância, os três problemas que o CRM deve resolver primeiro.",
+ perfis:"Informe os tipos de usuários e suas funções, como administrador, gestor, vendedor ou atendente.",
+ todos_dados:"Defina se cada usuário poderá ver toda a base ou somente informações da sua responsabilidade.",
+ permissoes:"Marque as ações que devem ser restritas conforme o cargo ou perfil de acesso.",
+ gestao:"Descreva quais resultados, atividades e informações os gestores precisam acompanhar da equipe.",
+ auditoria:"Indique se o sistema deve guardar o autor, a data e o conteúdo de cada alteração.",
+ origens:"Marque todos os canais pelos quais novos contatos e oportunidades chegam à empresa.",
+ captura_auto:"Informe se os contatos recebidos pelos canais devem ser cadastrados no CRM sem ação manual.",
+ dados_lead:"Selecione todas as informações que precisam fazer parte do cadastro de um lead.",
+ campos_especificos:"Liste informações próprias do seu negócio que não aparecem nas opções anteriores.",
+ distribuicao:"Defina se o CRM deve escolher automaticamente quem ficará responsável por cada novo lead.",
+ regra_distribuicao:"Explique o critério de distribuição, como rodízio, região, produto, disponibilidade ou especialidade.",
+ leads_mes:"Informe uma média mensal de novos contatos, mesmo que seja uma estimativa.",
+ processo_definido:"Indique se a equipe já segue etapas comerciais padronizadas do primeiro contato ao fechamento.",
+ etapas:"Liste, na ordem, os status pelos quais uma oportunidade passa até ser ganha ou perdida.",
+ multifunil:"Informe se produtos, serviços ou equipes diferentes precisam de processos comerciais separados.",
+ funis:"Dê o nome de cada processo separado e explique para qual produto, serviço ou equipe ele serve.",
+ acoes_etapa:"Explique quais tarefas, avisos ou registros devem ser criados ao mudar uma oportunidade de etapa.",
+ perdas:"Marque os motivos que a equipe deverá selecionar quando uma oportunidade não for fechada.",
+ pos_venda:"Descreva o fluxo após o fechamento, como onboarding, cobrança, entrega ou acompanhamento do cliente.",
+ perfil_cliente:"Selecione tudo o que a equipe precisa consultar em uma visão completa de cada cliente.",
+ multioportunidade:"Indique se o mesmo cliente pode negociar mais de um produto, serviço ou projeto ao mesmo tempo.",
+ atividades:"Marque quais interações e tarefas devem ficar registradas no histórico do cliente.",
+ alerta_atraso:"Defina se responsáveis e gestores devem receber avisos quando uma tarefa ultrapassar o prazo.",
+ rotina:"Descreva quando e como a equipe deve acompanhar clientes, pendências e próximos contatos.",
+ manual:"Liste tarefas repetidas pela equipe que consomem tempo e poderiam ser automatizadas.",
+ automacoes:"Selecione as ações que o CRM poderá executar automaticamente para apoiar a operação.",
+ regras_auto:"Descreva cada gatilho e sua ação, por exemplo: após 48 horas sem resposta, criar uma tarefa.",
+ nao_automatizar:"Informe decisões ou ações que sempre devem depender da revisão de uma pessoa.",
+ whatsapp:"Indique se mensagens do WhatsApp precisam ser enviadas, recebidas ou registradas pelo CRM.",
+ whatsapp_acoes:"Selecione o que a equipe precisa fazer no WhatsApp diretamente pelo CRM.",
+ numeros_wa:"Informe quantas linhas ou contas de WhatsApp deverão ser conectadas ao CRM.",
+ instagram:"Indique se contatos e conversas do Instagram precisam ser conectados ao CRM.",
+ instagram_acoes:"Selecione quais interações do Instagram devem virar contatos, registros ou ações no CRM.",
+ email_int:"Indique se as caixas de e-mail da equipe precisam enviar, receber ou registrar mensagens no CRM.",
+ email_acoes:"Selecione as funções de e-mail que deverão estar disponíveis dentro do CRM.",
+ agenda:"Marque qual ferramenta a equipe usa hoje para compromissos e reuniões.",
+ agenda_acoes:"Selecione o que o CRM deve fazer com agendas, horários e reuniões.",
+ integracoes:"Marque os sistemas externos que precisam trocar informações com o CRM.",
+ ferramentas:"Liste os nomes das plataformas usadas hoje e, se possível, para qual finalidade cada uma serve.",
+ apis:"Informe sistemas obrigatórios para a operação e como os dados precisam circular entre eles e o CRM.",
+ financeiro:"Selecione quais valores e informações financeiras precisam aparecer no CRM.",
+ cobranca:"Indique se o CRM deverá criar links, boletos, faturas ou outras formas de pagamento.",
+ propostas:"Informe se a equipe precisa montar e enviar propostas comerciais pelo CRM.",
+ contratos:"Informe se contratos deverão ser criados a partir dos dados registrados no CRM.",
+ assinatura:"Indique se propostas ou contratos precisarão ser assinados eletronicamente.",
+ documentos:"Liste os arquivos que devem ficar no cliente, como contratos, propostas, comprovantes ou documentos pessoais.",
+ home_dashboard:"Descreva as informações prioritárias que o usuário deve ver assim que acessar o sistema.",
+ kpis:"Selecione os números que a gestão usa para avaliar vendas, atendimento e produtividade.",
+ relatorios:"Liste os relatórios necessários, quem irá consultá-los e quais decisões eles apoiam.",
+ filtros:"Marque as formas necessárias de separar e localizar dados nos painéis e relatórios.",
+ exportacao:"Selecione os formatos nos quais os dados e relatórios deverão ser baixados.",
+ ia:"Indique se deseja usar inteligência artificial ou conhecer aplicações possíveis antes de decidir.",
+ ia_usos:"Selecione tarefas em que a IA poderia reduzir trabalho manual ou ajudar a equipe.",
+ ia_limites:"Defina informações, decisões ou comunicações que a IA não poderá realizar sozinha.",
+ login:"Selecione as formas pelas quais os usuários poderão acessar suas contas no CRM.",
+ dois_fatores:"Indique se o acesso exigirá um segundo código de verificação além da senha.",
+ dispositivos:"Marque todos os tipos de aparelho nos quais a equipe precisará usar o CRM.",
+ seguranca:"Descreva exigências de acesso, armazenamento, consentimento, privacidade ou proteção de dados pessoais.",
+ migracao:"Indique se cadastros, históricos ou negócios existentes precisam ser levados para o novo CRM.",
+ origem_migracao:"Marque onde estão armazenados os dados que serão importados para o novo CRM.",
+ registros:"Informe uma estimativa da quantidade total de clientes, leads ou outros itens a migrar.",
+ essenciais:"Liste somente o que precisa estar funcionando para a primeira versão poder entrar em uso.",
+ importantes:"Liste recursos valiosos que podem ser entregues depois sem impedir o início da operação.",
+ futuro:"Registre ideias e melhorias que podem ser planejadas para uma fase posterior do projeto.",
+ prazo:"Informe a data em que a equipe gostaria de começar a utilizar o CRM.",
+ etapas_implantacao:"Defina se os recursos podem ser liberados gradualmente por área, processo ou prioridade.",
+ fluxo_ideal:"Conte, em ordem, tudo o que deveria acontecer desde a entrada do lead até o pós-venda.",
+ fluxo_atual:"Conte quem recebe o lead hoje, quais ações realiza e para quem o encaminha.",
+ gargalos:"Aponte em quais partes do processo ocorrem espera, perda de informação, erros ou trabalho duplicado.",
+ sucesso:"Descreva resultados observáveis que demonstrariam que o novo CRM trouxe melhoria real.",
+ referencias:"Informe sistemas que servem de inspiração e quais recursos ou experiências você gostaria de aproveitar.",
+ extras:"Use este espaço para registrar necessidades ou regras relevantes que não apareceram nas perguntas anteriores."
+};
+function helpText(name,title){
+ return QUESTION_HELP[name]||`Explique as informações necessárias para responder: ${title}`;
 }
 function qHtml(q){
  const [type,name,title,extra,hint]=q, req=extra===1;
@@ -231,7 +309,7 @@ function qHtml(q){
    body=`<div class="choices">${opts.map(o=>{const vals=Array.isArray(saved[name])?saved[name]:[saved[name]];return `<div class="choice"><input id="${name}_${esc(o)}" type="${type==="radio"?"radio":"checkbox"}" name="${name}" value="${esc(o)}" ${vals.includes(o)?"checked":""}><label for="${name}_${esc(o)}">${esc(o)}</label></div>`}).join("")}</div>`;
  }
  const helpId=`help_${name}`;
- return `<div class="q"><label class="title"><span>${esc(title)} ${req?'<span class="req">*</span>':""}</span><button class="q-help" type="button" aria-label="Explicação: ${esc(title)}" aria-expanded="false" aria-controls="${helpId}">i</button></label><div class="help-pop" id="${helpId}">${esc(helpText(type,title))}</div>${hint?`<div class="hint">${esc(hint)}</div>`:""}${body}</div>`;
+ return `<div class="q"><label class="title"><span>${esc(title)} ${req?'<span class="req">*</span>':""}</span><button class="q-help" type="button" aria-label="Explicação: ${esc(title)}" aria-expanded="false" aria-controls="${helpId}">i</button></label><div class="help-pop" id="${helpId}">${esc(helpText(name,title))}</div>${hint?`<div class="hint">${esc(hint)}</div>`:""}${body}</div>`;
 }
 sections.forEach((s,i)=>{
  nav.insertAdjacentHTML("beforeend",`<button type="button" data-i="${i}">${String(i+1).padStart(2,"0")} &nbsp; ${s.t}</button>`);
